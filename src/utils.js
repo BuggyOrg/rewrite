@@ -18,3 +18,7 @@ export function compareGraphs (graph1, graph2) {
   var g2 = JSON.stringify(Graph.toJSON(graph2), null, 2)
   return g1 === g2
 }
+
+export function portEquals (port1, port2) {
+  return port1.port === port2.port && port1.kind === port2.kind
+}

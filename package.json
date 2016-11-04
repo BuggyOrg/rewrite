@@ -4,8 +4,8 @@
   "description": "Tools for replacing parts of a graph.",
   "main": "lib/api.js",
   "scripts": {
-    "test": "node node_modules/standard/bin/cmd.js src/**/*.js && node_modules/mocha/bin/mocha --compilers js:babel-register",
-    "build": "babel src -d lib",
+    "test": "mocha --compilers js:babel-register && standard src/**/*.js",
+    "build": "babel src -d lib && babel test -d test/lib",
     "doc": "jsdoc -c .jsdoc.json && cp -r doc jsdoc/@buggyorg/graphtools/`node -e \"console.log(require('./package.json').version)\"`",
     "publish-docs": "npm run doc && (git diff --exit-code > /dev/null || (echo 'No clean head. Please commit or stash before pushing docs.' && exit 1))  && (git diff --cached --exit-code  > /dev/null  || (echo 'No clean head. Please commit or stash before pushing docs.' && exit 1)) && git add -f jsdoc/* && git commit -m '(doc) New documentation.' && git subtree split --prefix jsdoc/@buggyorg/graphtools/`node -e \"console.log(require('./package.json').version)\"` -b gh-pages && git push -f origin gh-pages:gh-pages && git branch -D gh-pages && git reset HEAD~1",
     "prepublish": "babel src -d lib"
@@ -19,7 +19,7 @@
     "@buggyorg/graphtools": "^0.4.0-pre.5"
   },
   "devDependencies": {
-    "babel-cli": "^6.4.5",
+    "babel-cli": "^6.18.0",
     "babel-preset-es2015": "^6.3.13",
     "babel-register": "^6.4.3",
     "chai": "^3.4.1",
