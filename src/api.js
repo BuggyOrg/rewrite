@@ -1,28 +1,63 @@
 import * as Graph from '@buggyorg/graphtools'
+import _ from 'lodash'
 
-function graphEquals (g1, g2) {
-  /* compare by reference */
-  return g1 === g2
+const BreakException = { }
+
+const Node = Graph.Node
+const Port = Graph.Port
+const Edge = Graph.Edge
+
+export function portEquals (port1, port2) {
+  return port1.port === port2.port
+  && port1.kind === port2.kind
 }
 
-export function applyRule (matcher, generator) {
+export function applyNode (matcher, generator) {
   return (graph) => {
-    Graph.nodes(graph).forEach((node) => {
-      var match = matcher(node, graph)
-      if (matcher(node) !== false) { return generator(match, graph) }
-    })
+    try {
+      Graph.nodes(graph).forEach((node) => {
+        var match = matcher(node, graph)
+        if (match !== false) {
+          graph = generator(match, graph)
+          throw BreakException
+        }
+      })
+    } catch(exc) {
+      if (exc !== BreakException) {
+        throw exc
+      }
+    }
     return graph
   }
 }
 
-var BreakException = { }
+export function applyPort (matcher, generator) {
+  return (graph) => {
+    try {
+      Graph.nodes(graph).forEach((node) => {
+        Node.ports(node).forEach((port) => {
+          var match = matcher(node, port, graph)
+          if (match !== false) {
+            graph = generator(match, graph)
+            throw BreakException
+          }
+        })
+      })
+    } catch(exc) {
+      if (exc !== BreakException) {
+        throw exc
+      }
+    }
+    return graph
+  }
+}
 
-export function rewrite (rules) {
+export function rewrite (rules, iterations) {
+  iterations = iterations || 100
   return (graph) => {
     var currentGraph = graph
     /* iterate as long as any rule is applied */
-    for (var i = 1; i < 100; i++) {
-      console.log('iteration #' + i)
+    for (var i = 1; i < iterations; i++) {
       try {
         /* iterate over set of rules */
         rules.forEach((rule) => {
@@ -33,10 +68,9 @@ export function rewrite (rules) {
             throw BreakException
           }
         })
-        console.log('no more matching rules')
         break
-      } catch (e) {
-        if (e === BreakException) {
+      } catch (exc) {
+        if (exc === BreakException) {
           continue
         } else {
           break
@@ -45,4 +79,37 @@ export function rewrite (rules) {
     }
     return currentGraph
   }
+}
+
+function compareCustomizer(value, key) {
+  if (key === 'id') {
+    return 'REMOVED'
+  } else if(key === 'path') {
+    return 'REMOVED'
+  } else if(key === 'node') {
+    return 'REMOVED'
+  } else {
+    return undefined
+  }
+}
+
+export function graphEquals (graph1, graph2) {
+  var g1 = _.cloneDeepWith(graph1, compareCustomizer)
+  var g2 = _.cloneDeepWith(graph2, compareCustomizer)
+  var s1 = JSON.stringify(Graph.toJSON(g1))
+  var s2 = JSON.stringify(Graph.toJSON(g2))
+  return s1 === s2
+}
+
+export function replacePort(node, oldPort, newPort, graph) {
+  var newNode = _.cloneDeep(node)
+  newNode.ports = _.map(newNode.ports, (port) => {
+    if(portEquals(port, oldPort)) {
+      return newPort
+    } else {
+      return port
+    }
+  })
+  graph = Graph.replaceNode(node, newNode, graph)
+  return graph
 }
