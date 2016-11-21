@@ -1,5 +1,5 @@
 
-/* global describe, it */
+/* global describe, it, xit */
 
 import * as Graph from '@buggyorg/graphtools'
 import * as API from '../src/api'
@@ -123,7 +123,7 @@ describe('API tests', () => {
       })
     ).to.be.true
   })
-  it('replace generic port types by concrete type (using applyPort)', () => {
+  xit('replace generic port types by concrete type (using applyPort)', () => {
     var rule = API.applyEdge(
       (node, src, dst, graph) => {
         if (src.type === 'generic' && dst.type !== 'generic') {
