@@ -1,5 +1,4 @@
 import * as Graph from '@buggyorg/graphtools'
-import _ from 'lodash'
 import fs from 'fs'
 
 export function readGraph (path) {

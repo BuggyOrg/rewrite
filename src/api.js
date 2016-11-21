@@ -3,13 +3,8 @@ import _ from 'lodash'
 
 const BreakException = { }
 
-const Node = Graph.Node
-const Port = Graph.Port
-const Edge = Graph.Edge
-
 export function portEquals (port1, port2) {
-  return port1.port === port2.port
-  && port1.kind === port2.kind
+  return port1.port === port2.port && port1.kind === port2.kind
 }
 
 export function applyNode (matcher, generator) {
@@ -22,7 +17,7 @@ export function applyNode (matcher, generator) {
           throw BreakException
         }
       })
-    } catch(exc) {
+    } catch (exc) {
       if (exc !== BreakException) {
         throw exc
       }
@@ -35,7 +30,7 @@ export function applyPort (matcher, generator) {
   return (graph) => {
     try {
       Graph.nodes(graph).forEach((node) => {
-        Node.ports(node).forEach((port) => {
+        Graph.Node.ports(node).forEach((port) => {
           var match = matcher(node, port, graph)
           if (match !== false) {
             graph = generator(match, graph)
@@ -43,7 +38,30 @@ export function applyPort (matcher, generator) {
           }
         })
       })
-    } catch(exc) {
+    } catch (exc) {
+      if (exc !== BreakException) {
+        throw exc
+      }
+    }
+    return graph
+  }
+}
+
+export function applyEdge (matcher, generator) {
+  return (graph) => {
+    try {
+      Graph.nodes(graph).forEach((node) => {
+        Graph.Node.ports(node).forEach((port) => {
+          Graph.successors(port, graph).forEach((succ) => {
+            var match = matcher(node, port, succ, graph)
+            if (match !== false) {
+              graph = generator(match, graph)
+              throw BreakException
+            }
+          })
+        })
+      })
+    } catch (exc) {
       if (exc !== BreakException) {
         throw exc
       }
@@ -63,17 +81,18 @@ export function rewrite (rules, iterations) {
         rules.forEach((rule) => {
           var modifiedGraph = rule(currentGraph)
           if (!graphEquals(currentGraph, modifiedGraph)) {
-            /* rule was applied */
+            /* some rule applied */
             currentGraph = modifiedGraph
             throw BreakException
           }
         })
+        /* no rule applied */
         break
       } catch (exc) {
         if (exc === BreakException) {
           continue
         } else {
-          break
+          throw exc
         }
       }
     }
@@ -81,13 +100,13 @@ export function rewrite (rules, iterations) {
   }
 }
 
-function compareCustomizer(value, key) {
+function compareCustomizer (value, key) {
   if (key === 'id') {
-    return 'REMOVED'
-  } else if(key === 'path') {
-    return 'REMOVED'
-  } else if(key === 'node') {
-    return 'REMOVED'
+    return null
+  } else if (key === 'path') {
+    return null
+  } else if (key === 'node') {
+    return null
   } else {
     return undefined
   }
@@ -101,10 +120,10 @@ export function graphEquals (graph1, graph2) {
   return s1 === s2
 }
 
-export function replacePort(node, oldPort, newPort, graph) {
+export function replacePort (node, oldPort, newPort, graph) {
   var newNode = _.cloneDeep(node)
   newNode.ports = _.map(newNode.ports, (port) => {
-    if(portEquals(port, oldPort)) {
+    if (portEquals(port, oldPort)) {
       return newPort
     } else {
       return port
