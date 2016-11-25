@@ -7,6 +7,10 @@ export function portEquals (port1, port2) {
   return port1.port === port2.port && port1.kind === port2.kind
 }
 
+export function IsGenericPort (port) {
+  return port.type === 'generic'
+}
+
 export function applyNode (matcher, generator) {
   return (graph) => {
     try {
@@ -50,16 +54,12 @@ export function applyPort (matcher, generator) {
 export function applyEdge (matcher, generator) {
   return (graph) => {
     try {
-      Graph.nodes(graph).forEach((node) => {
-        Graph.Node.ports(node).forEach((port) => {
-          Graph.successors(port, graph).forEach((succ) => {
-            var match = matcher(node, port, succ, graph)
-            if (match !== false) {
-              graph = generator(match, graph)
-              throw BreakException
-            }
-          })
-        })
+      Graph.edges(graph).forEach((edge) => {
+        var match = matcher(edge, graph)
+        if (match !== false) {
+          graph = generator(match, graph)
+          throw BreakException
+        }
       })
     } catch (exc) {
       if (exc !== BreakException) {

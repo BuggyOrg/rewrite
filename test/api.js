@@ -51,7 +51,7 @@ describe('API tests', () => {
     var rule = API.applyNode(
       (node, graph) => {
         var ports = Graph.Node.ports(node)
-        var genericPort = _.find(ports, (p) => p.type === 'generic')
+        var genericPort = _.find(ports, (p) => API.IsGenericPort(p))
         if (genericPort) {
           return {
             node: node,
@@ -72,9 +72,7 @@ describe('API tests', () => {
             })
           }
         })
-
-        graph = Graph.replaceNode(match.node, node, graph)
-        return graph
+        return Graph.replaceNode(match.node, node, graph)
       })
 
     var graph1 = createTestGraph()
@@ -83,31 +81,26 @@ describe('API tests', () => {
     expect(API.graphEquals(graph1, graph2)).to.be.false
 
     expect(
-      _.every(Graph.nodes(graph2), (node) => {
-        return _.every(Graph.Node.ports(node), (port) => {
-          return port.type !== 'generic'
-        })
-      })
+      _.every(Graph.nodes(graph2), (node) =>
+      _.every(Graph.Node.ports(node), (port) => !API.IsGenericPort(port)))
     ).to.be.true
   })
   it('replace generic port types by concrete type (using applyPort)', () => {
     var rule = API.applyPort(
       (node, port, graph) => {
         if (port.type === 'generic') {
-          return {
-            node: node,
-            port: port
-          }
+          return port
         } else {
           return false
         }
       },
-      (match, graph) => {
-        var newPort = _.assign(_.cloneDeep(match.port), {
+      (port, graph) => {
+        var id = Graph.Port.node(port)
+        var node = Graph.node(id, graph)
+        var newPort = _.assign(_.cloneDeep(port), {
           type: 'number'
         })
-        graph = API.replacePort(match.node, match.port, newPort, graph)
-        return graph
+        return API.replacePort(node, port, newPort, graph)
       })
 
     var graph1 = createTestGraph()
@@ -116,29 +109,32 @@ describe('API tests', () => {
     expect(API.graphEquals(graph1, graph2)).to.be.false
 
     expect(
-      _.every(Graph.nodes(graph2), (node) => {
-        return _.every(Graph.Node.ports(node), (port) => {
-          return port.type !== 'generic'
-        })
-      })
+      _.every(Graph.nodes(graph2), (node) =>
+      _.every(Graph.Node.ports(node), (port) => !API.IsGenericPort(port)))
     ).to.be.true
   })
-  xit('replace generic port types by concrete type (using applyPort)', () => {
+  it('replace generic port types by concrete type (using applyEdge)', () => {
     var rule = API.applyEdge(
-      (node, src, dst, graph) => {
-        if (src.type === 'generic' && dst.type !== 'generic') {
-          return {
-            node: node,
-            src: src,
-            dst: dst
-          }
+      (edge, graph) => {
+        var src = Graph.node(edge.from.node, graph)
+        var dst = Graph.node(edge.to.node, graph)
+        var srcPort = Graph.Node.port(edge.from.port, src)
+        var dstPort = Graph.Node.port(edge.to.port, dst)
+        if (srcPort.type === 'generic' && dstPort.type !== 'generic') {
+          return edge
         } else {
           return false
         }
       },
-      (match, graph) => {
-        console.log(JSON.stringify(match))
-        return graph
+      (edge, graph) => {
+        var src = Graph.node(edge.from.node, graph)
+        var dst = Graph.node(edge.to.node, graph)
+        var srcPort = Graph.Node.port(edge.from.port, src)
+        var dstPort = Graph.Node.port(edge.to.port, dst)
+        var newPort = _.assign(_.cloneDeep(srcPort), {
+          type: dstPort.type
+        })
+        return API.replacePort(src, srcPort, newPort, graph)
       })
 
     var graph1 = createTestGraph()
@@ -147,10 +143,8 @@ describe('API tests', () => {
     expect(API.graphEquals(graph1, graph2)).to.be.false
 
     expect(
-      _.every(Graph.nodes(graph2), (node) => {
-        return _.every(Graph.Node.ports(node), (port) => {
-          return port.type !== 'generic'
-        })
+      _.every(Graph.edges(graph2), (edge) => {
+        return !API.IsGenericPort(edge.from.port)
       })
     ).to.be.true
   })
