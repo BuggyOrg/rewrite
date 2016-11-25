@@ -51,7 +51,7 @@ describe('API tests', () => {
     var rule = API.applyNode(
       (node, graph) => {
         var ports = Graph.Node.ports(node)
-        var genericPort = _.find(ports, (p) => API.IsGenericPort(p))
+        var genericPort = _.find(ports, (p) => API.isGenericPort(p))
         if (genericPort) {
           return {
             node: node,
@@ -82,7 +82,7 @@ describe('API tests', () => {
 
     expect(
       _.every(Graph.nodes(graph2), (node) =>
-      _.every(Graph.Node.ports(node), (port) => !API.IsGenericPort(port)))
+      _.every(Graph.Node.ports(node), (port) => !API.isGenericPort(port)))
     ).to.be.true
   })
   it('replace generic port types by concrete type (using applyPort)', () => {
@@ -110,31 +110,23 @@ describe('API tests', () => {
 
     expect(
       _.every(Graph.nodes(graph2), (node) =>
-      _.every(Graph.Node.ports(node), (port) => !API.IsGenericPort(port)))
+      _.every(Graph.Node.ports(node), (port) => !API.isGenericPort(port)))
     ).to.be.true
   })
   it('replace generic port types by concrete type (using applyEdge)', () => {
     var rule = API.applyEdge(
       (edge, graph) => {
-        var src = Graph.node(edge.from.node, graph)
-        var dst = Graph.node(edge.to.node, graph)
-        var srcPort = Graph.Node.port(edge.from.port, src)
-        var dstPort = Graph.Node.port(edge.to.port, dst)
-        if (srcPort.type === 'generic' && dstPort.type !== 'generic') {
+        if (API.isGenericPort(edge.sourcePort) && API.isGenericPort(edge.targetPort) === false) {
           return edge
         } else {
           return false
         }
       },
       (edge, graph) => {
-        var src = Graph.node(edge.from.node, graph)
-        var dst = Graph.node(edge.to.node, graph)
-        var srcPort = Graph.Node.port(edge.from.port, src)
-        var dstPort = Graph.Node.port(edge.to.port, dst)
-        var newPort = _.assign(_.cloneDeep(srcPort), {
-          type: dstPort.type
+        var newPort = _.assign(_.cloneDeep(edge.sourcePort), {
+          type: edge.targetPort.type
         })
-        return API.replacePort(src, srcPort, newPort, graph)
+        return API.replacePort(edge.source, edge.sourcePort, newPort, graph)
       })
 
     var graph1 = createTestGraph()
@@ -144,7 +136,7 @@ describe('API tests', () => {
 
     expect(
       _.every(Graph.edges(graph2), (edge) => {
-        return !API.IsGenericPort(edge.from.port)
+        return !API.isGenericPort(edge.from.port)
       })
     ).to.be.true
   })
