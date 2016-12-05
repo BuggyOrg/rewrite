@@ -14,7 +14,7 @@ export function isGenericPort (port) {
 export function applyNode (matcher, generator) {
   return (graph) => {
     try {
-      Graph.nodes(graph).forEach((node) => {
+      Graph.nodesDeep(graph).forEach((node) => {
         var match = matcher(node, graph)
         if (match !== false) {
           graph = generator(match, graph)
@@ -33,7 +33,7 @@ export function applyNode (matcher, generator) {
 export function applyPort (matcher, generator) {
   return (graph) => {
     try {
-      Graph.nodes(graph).forEach((node) => {
+      Graph.nodesDeep(graph).forEach((node) => {
         Graph.Node.ports(node).forEach((port) => {
           var match = matcher(node, port, graph)
           if (match !== false) {
@@ -55,8 +55,17 @@ export function applyEdge (matcher, generator) {
   return (graph) => {
     try {
       Graph.edges(graph).forEach((edge) => {
+        if (!edge ||
+        !edge.from ||
+        !edge.to ||
+        !edge.from.port ||
+        !edge.to.port ||
+        !edge.from.node ||
+        !edge.to.node) {
+          return
+        }
         var src = Graph.node(edge.from.node, graph)
-        var dst = Graph.node(edge.from.node, graph)
+        var dst = Graph.node(edge.to.node, graph)
         var match = matcher({
           source: src,
           sourcePort: Graph.Node.port(edge.from.port, src),

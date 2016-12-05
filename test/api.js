@@ -1,5 +1,5 @@
 
-/* global describe, it, xit */
+/* global describe, it */
 
 import * as Graph from '@buggyorg/graphtools'
 import * as API from '../src/api'
@@ -28,6 +28,75 @@ function createTestGraph () {
     Graph.addEdge({ from: 'a@p1', to: 'b@p2' }),
     Graph.addEdge({ from: 'a@p2', to: 'b@p1' })
   )()
+}
+
+function createFacGraph () {
+  var cmp = Graph.flow(
+    Graph.addNode({
+      name: 'Const',
+      atomic: true,
+      componentId: 'math/const',
+      ports: [
+        { port: 'out', kind: 'output', type: 'number' }
+      ]
+    }),
+    Graph.addNode({
+      name: 'Add',
+      atomic: true,
+      componentId: 'math/add',
+      ports: [
+        { port: 'in1', kind: 'input', type: 'generic' },
+        { port: 'in2', kind: 'input', type: 'generic' },
+        { port: 'out', kind: 'output', type: 'generic' }
+      ]
+    }),
+    Graph.addNode({
+      name: 'Multiply',
+      atomic: true,
+      componentId: 'math/multiply',
+      ports: [
+        { port: 'in1', kind: 'input', type: 'generic' },
+        { port: 'in2', kind: 'input', type: 'generic' },
+        { port: 'out', kind: 'output', type: 'generic' }
+      ]
+    }),
+    Graph.addNode({
+      name: 'Recursion',
+      atomic: true,
+      isRecursive: true,
+      componentId: 'math/factorial',
+      ports: [
+        { port: 'in', kind: 'input', type: 'generic' },
+        { port: 'out', kind: 'output', type: 'generic' }
+      ]
+    }),
+    Graph.addNode({
+      name: 'Output',
+      atomic: true,
+      ports: [
+        { port: 'in', kind: 'input', type: 'generic' },
+        { port: 'out', kind: 'output', type: 'generic' }
+      ]
+    }),
+    Graph.addEdge({ from: '@out', to: 'Add@in1' }),
+    Graph.addEdge({ from: '@out', to: 'Multiply@in1' }),
+    Graph.addEdge({ from: 'Const@out', to: 'Add@in2' }),
+    Graph.addEdge({ from: 'Add@out', to: 'Recursion@in' }),
+    Graph.addEdge({ from: 'Recursion@out', to: 'Multiply@in2' }),
+    Graph.addEdge({ from: 'Multiply@out', to: 'Output@in' }),
+    Graph.addEdge({ from: 'Recursion', to: '', layer: 'recursion' })
+  )(Graph.compound({
+    name: 'Input',
+    atomic: false,
+    isRecursive: true,
+    isRecursiveRoot: true,
+    componentId: 'math/factorial',
+    ports: [
+      { port: 'out', kind: 'input', type: 'number' },
+      { port: 'in', kind: 'output', type: 'number' }
+    ]
+  }))
+  return Graph.addNode(cmp, Graph.empty())
 }
 
 describe('API tests', () => {
@@ -139,5 +208,24 @@ describe('API tests', () => {
         return !API.isGenericPort(edge.from.port)
       })
     ).to.be.true
+  })
+  it('ignores edges in other layers than datalayer', () => {
+    var rule = API.applyEdge(
+      (edge, graph) => {
+        if (API.isGenericPort(edge.sourcePort) && API.isGenericPort(edge.targetPort) === false) {
+          return edge
+        } else {
+          return false
+        }
+      },
+      (edge, graph) => {
+        var newPort = _.assign(_.cloneDeep(edge.sourcePort), {
+          type: edge.targetPort.type
+        })
+        return API.replacePort(edge.source, edge.sourcePort, newPort, graph)
+      })
+
+    var graph1 = createFacGraph()
+    API.rewrite([rule])(graph1)
   })
 })
