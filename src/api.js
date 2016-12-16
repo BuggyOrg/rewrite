@@ -8,6 +8,7 @@ export function portEquals (port1, port2) {
 }
 
 export function isGenericPort (port) {
+  if (!port) return false
   return port.type === 'generic'
 }
 
@@ -57,21 +58,16 @@ export function applyEdge (matcher, generator) {
       Graph.edges(graph).forEach((edge) => {
         if (!edge ||
         !edge.from ||
-        !edge.to ||
-        !edge.from.port ||
-        !edge.to.port ||
-        !edge.from.node ||
-        !edge.to.node) {
+        !edge.to) {
           return
         }
-        var src = Graph.node(edge.from.node, graph)
-        var dst = Graph.node(edge.to.node, graph)
-        var match = matcher({
-          source: src,
-          sourcePort: Graph.Node.port(edge.from.port, src),
-          target: dst,
-          targetPort: Graph.Node.port(edge.to.port, dst)},
-          graph)
+        var arg = {
+          source: Graph.node(edge.from, graph),
+          target: Graph.node(edge.to, graph)
+        }
+        if (edge.from.node && edge.from.port) arg.sourcePort = Graph.Node.port(edge.from.port, arg.source)
+        if (edge.to.node && edge.to.port) arg.targetPort = Graph.Node.port(edge.to.port, arg.target)
+        var match = matcher(arg, graph)
         if (match !== false) {
           graph = generator(match, graph)
           throw BreakException

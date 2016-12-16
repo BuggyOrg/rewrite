@@ -92,8 +92,8 @@ function createFacGraph () {
     isRecursiveRoot: true,
     componentId: 'math/factorial',
     ports: [
-      { port: 'out', kind: 'input', type: 'number' },
-      { port: 'in', kind: 'output', type: 'number' }
+      { port: 'out', kind: 'input', type: 'generic' },
+      { port: 'in', kind: 'output', type: 'generic' }
     ]
   }))
   return Graph.addNode(cmp, Graph.empty())
@@ -209,7 +209,7 @@ describe('API tests', () => {
       })
     ).to.be.true
   })
-  it('ignores edges in other layers than datalayer', () => {
+  it('can handle edges in other layers than datalayer', () => {
     var rule = API.applyEdge(
       (edge, graph) => {
         if (API.isGenericPort(edge.sourcePort) && API.isGenericPort(edge.targetPort) === false) {
