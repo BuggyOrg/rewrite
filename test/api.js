@@ -228,4 +228,13 @@ describe('API tests', () => {
     var graph1 = createFacGraph()
     API.rewrite([rule])(graph1)
   })
+
+  it('can replace components', () => {
+    var rule = API.applyComponent((comp) => comp.componentId === 'A',
+      (comp, graph) => Graph.updateComponent(comp, {isA: true}, graph))
+
+    var graph = Graph.addComponent({componentId: 'A', ports: [{port: 'X', kind: 'input', type: 'X'}], version: '0.0.0'}, Graph.empty())
+    var rewGraph = API.rewrite([rule])(graph)
+    expect(Graph.component('A', rewGraph).isA).to.be.true
+  })
 })

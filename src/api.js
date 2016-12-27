@@ -17,6 +17,10 @@ export function applyNode (matcher, generator) {
     try {
       Graph.nodesDeep(graph).forEach((node) => {
         var match = matcher(node, graph)
+        if (match === true) {
+          graph = generator(node, graph)
+          throw BreakException
+        }
         if (match !== false) {
           graph = generator(match, graph)
           throw BreakException
@@ -37,6 +41,10 @@ export function applyPort (matcher, generator) {
       Graph.nodesDeep(graph).forEach((node) => {
         Graph.Node.ports(node).forEach((port) => {
           var match = matcher(node, port, graph)
+          if (match === true) {
+            graph = generator(node, port, graph)
+            throw BreakException
+          }
           if (match !== false) {
             graph = generator(match, graph)
             throw BreakException
@@ -68,6 +76,33 @@ export function applyEdge (matcher, generator) {
         if (edge.from.node && edge.from.port) arg.sourcePort = Graph.Node.port(edge.from.port, arg.source)
         if (edge.to.node && edge.to.port) arg.targetPort = Graph.Node.port(edge.to.port, arg.target)
         var match = matcher(arg, graph)
+        if (match === true) {
+          graph = generator(arg, graph)
+          throw BreakException
+        }
+        if (match !== false) {
+          graph = generator(match, graph)
+          throw BreakException
+        }
+      })
+    } catch (exc) {
+      if (exc !== BreakException) {
+        throw exc
+      }
+    }
+    return graph
+  }
+}
+
+export function applyComponent (matcher, generator) {
+  return (graph) => {
+    try {
+      Graph.components(graph).forEach((comp) => {
+        var match = matcher(comp, graph)
+        if (match === true) {
+          graph = generator(comp, graph)
+          throw BreakException
+        }
         if (match !== false) {
           graph = generator(match, graph)
           throw BreakException
