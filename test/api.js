@@ -31,7 +31,7 @@ function createTestGraph () {
 }
 
 function createFacGraph () {
-  var cmp = Graph.flow(
+  const cmp = Graph.flow(
     Graph.addNode({
       name: 'Const',
       atomic: true,
@@ -101,79 +101,75 @@ function createFacGraph () {
 
 describe('API tests', () => {
   it('can create and compare graphs', () => {
-    var graph1 = createTestGraph()
-    var graph2 = createTestGraph()
+    const graph1 = createTestGraph()
+    const graph2 = createTestGraph()
+    const graph3 = createFacGraph()
+    expect(API.graphEquals(graph1, graph1)).to.be.true
+    expect(API.graphEquals(graph1, graph2)).to.be.true
+    expect(API.graphEquals(graph1, graph3)).to.be.false
+  })
+  it('can empty rules without changing the graph', () => {
+    const rule1 = API.applyNode(
+      (node, graph) => false,
+      (match, graph) => null)
+    const rule2 = API.applyPort(
+      (node, graph) => false,
+      (match, graph) => null)
+    const graph1 = createTestGraph()
+    const graph2 = API.rewrite([rule1, rule2])(graph1)
     expect(API.graphEquals(graph1, graph2)).to.be.true
   })
-  it('applying empty rules does not change the graph', () => {
-    var rule1 = API.applyNode(
-      (node) => false,
-      (match) => null)
-    var rule2 = API.applyPort(
-      (node) => false,
-      (match) => null)
-    var graph1 = createTestGraph()
-    var graph2 = API.rewrite([rule1, rule2])(graph1)
-    expect(API.graphEquals(graph1, graph2)).to.be.true
+  it('throws errors when there return values are forgotten', () => {
+    const rule1 = API.applyEdge(
+      (edge, graph) => undefined,
+      (match, graph) => true)
+    const rule2 = API.applyEdge(
+      (edge, graph) => true,
+      (match, graph) => undefined)
+    const graph = createTestGraph()
+    expect(() => API.rewrite([rule1])(graph)).to.throw
+    expect(() => API.rewrite([rule2])(graph)).to.throw
   })
-  it('replace generic port types by concrete type (using applyNode)', () => {
-    var rule = API.applyNode(
+  it('can replace port types (using applyNode)', () => {
+    const rule = API.applyNode(
       (node, graph) => {
-        var ports = Graph.Node.ports(node)
-        var genericPort = _.find(ports, (p) => API.isGenericPort(p))
-        if (genericPort) {
-          return {
-            node: node,
-            port: genericPort
-          }
-        } else {
-          return false
+        const ports = Graph.Node.ports(node)
+        const genericPort = _.find(ports, (p) => API.isGenericPort(p))
+        if (!genericPort) return false
+        return {
+          node: node,
+          port: genericPort
         }
       },
       (match, graph) => {
-        var node = _.cloneDeep(match.node)
-        node.ports = _.map(node.ports, (p) => {
-          if (p.port !== match.port.port) {
-            return p
-          } else {
-            return _.assign(p, {
-              type: 'number'
-            })
-          }
+        const newPort = _.assign(_.cloneDeep(match.port), {
+          type: 'number'
         })
-        return Graph.replaceNode(match.node, node, graph)
+        return API.replacePort(match.node, match.port, newPort, graph)
       })
-
-    var graph1 = createTestGraph()
-    var graph2 = API.rewrite([rule])(graph1)
-
+    const graph1 = createTestGraph()
+    const graph2 = API.rewrite([rule])(graph1)
     expect(API.graphEquals(graph1, graph2)).to.be.false
-
     expect(
       _.every(Graph.nodes(graph2), (node) =>
       _.every(Graph.Node.ports(node), (port) => !API.isGenericPort(port)))
     ).to.be.true
   })
-  it('replace generic port types by concrete type (using applyPort)', () => {
-    var rule = API.applyPort(
-      (node, port, graph) => {
-        if (port.type === 'generic') {
-          return port
-        } else {
-          return false
-        }
-      },
+  it('can replace port types (using applyPort)', () => {
+    const rule = API.applyPort(
+      (port, graph) => API.isGenericPort(port)
+        ? port
+        : false,
       (port, graph) => {
-        var id = Graph.Port.node(port)
-        var node = Graph.node(id, graph)
+        var node = Graph.node(Graph.Port.node(port), graph)
         var newPort = _.assign(_.cloneDeep(port), {
           type: 'number'
         })
         return API.replacePort(node, port, newPort, graph)
       })
 
-    var graph1 = createTestGraph()
-    var graph2 = API.rewrite([rule])(graph1)
+    const graph1 = createTestGraph()
+    const graph2 = API.rewrite([rule])(graph1)
 
     expect(API.graphEquals(graph1, graph2)).to.be.false
 
@@ -182,8 +178,8 @@ describe('API tests', () => {
       _.every(Graph.Node.ports(node), (port) => !API.isGenericPort(port)))
     ).to.be.true
   })
-  it('replace generic port types by concrete type (using applyEdge)', () => {
-    var rule = API.applyEdge(
+  it('can replace port types (using applyEdge)', () => {
+    const rule = API.applyEdge(
       (edge, graph) => {
         if (API.isGenericPort(edge.sourcePort) && API.isGenericPort(edge.targetPort) === false) {
           return edge
@@ -198,8 +194,8 @@ describe('API tests', () => {
         return API.replacePort(edge.source, edge.sourcePort, newPort, graph)
       })
 
-    var graph1 = createTestGraph()
-    var graph2 = API.rewrite([rule])(graph1)
+    const graph1 = createTestGraph()
+    const graph2 = API.rewrite([rule])(graph1)
 
     expect(API.graphEquals(graph1, graph2)).to.be.false
 
@@ -209,8 +205,8 @@ describe('API tests', () => {
       })
     ).to.be.true
   })
-  it('can handle edges in other layers than datalayer', () => {
-    var rule = API.applyEdge(
+  it('can handle edges in all layers', () => {
+    const rule = API.applyEdge(
       (edge, graph) => {
         if (API.isGenericPort(edge.sourcePort) && API.isGenericPort(edge.targetPort) === false) {
           return edge
@@ -219,22 +215,25 @@ describe('API tests', () => {
         }
       },
       (edge, graph) => {
-        var newPort = _.assign(_.cloneDeep(edge.sourcePort), {
+        const newPort = _.assign(_.cloneDeep(edge.sourcePort), {
           type: edge.targetPort.type
         })
         return API.replacePort(edge.source, edge.sourcePort, newPort, graph)
       })
 
-    var graph1 = createFacGraph()
+    const graph1 = createFacGraph()
     API.rewrite([rule])(graph1)
   })
 
   it('can replace components', () => {
-    var rule = API.applyComponent((comp) => comp.componentId === 'A',
-      (comp, graph) => Graph.updateComponent(comp, {isA: true}, graph))
+    const rule = API.applyComponent((comp, graph) =>
+      comp.componentId === 'A'
+      ? comp
+      : false,
+    (comp, graph) => Graph.updateComponent(comp, {isA: true}, graph))
 
-    var graph = Graph.addComponent({componentId: 'A', ports: [{port: 'X', kind: 'input', type: 'X'}], version: '0.0.0'}, Graph.empty())
-    var rewGraph = API.rewrite([rule])(graph)
+    const graph = Graph.addComponent({componentId: 'A', ports: [{port: 'X', kind: 'input', type: 'X'}], version: '0.0.0'}, Graph.empty())
+    const rewGraph = API.rewrite([rule])(graph)
     expect(Graph.component('A', rewGraph).isA).to.be.true
   })
 })
