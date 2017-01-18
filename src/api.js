@@ -83,8 +83,10 @@ export function apply (graph, set, matcher, generator) {
       const newGraph = generator(match, graph)
       if (newGraph === undefined) {
         throw new Error('Generator function returned undefined (missing return value?)')
+      } else if (graphEquals(graph, newGraph)) {
+        continue
       }
-      return newGraph
+      graph = newGraph
     }
   }
   return graph
@@ -132,7 +134,7 @@ export function applyPort (matcher, generator) {
  * @param {Func} generator update function that takes a match and a graph and returns a new graph
  * @return {Graph} updated graph
  */
-export function applyEdge (matcher, generator) { 
+export function applyEdge (matcher, generator) {
   return (graph) => {
     const edges = _.map(Graph.edges(graph), (edge) => {
       if (isPortEdge(edge)) {
@@ -211,7 +213,7 @@ export function rewrite (rules, iterations = Infinity) {
 }
 
 function compareCustomizer (value, key) {
-  return _.contains(Blacklist, key)
+  return _.includes(Blacklist, key)
     ? null
     : undefined
 }
@@ -238,12 +240,10 @@ export function graphEquals (graph1, graph2) {
  * @return {Graph} updated graph with oldPort replaced by newPort
  */
 export function replacePort (node, oldPort, newPort, graph) {
-  const newNode = _.assign(_.cloneDeep(node), {
-    ports: _.map(newNode.ports, (port) => {
+  const newNode = _.cloneDeep(node)
+  newNode.ports = _.map(Graph.Node.ports(node), (port) =>
       portEquals(port, oldPort)
       ? newPort
-      : port
-    })
-  })
+      : port)
   return Graph.replaceNode(node, newNode, graph)
 }

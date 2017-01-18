@@ -1,0 +1,80 @@
+{
+  "nodes": [
+    {
+      "name": "a",
+      "ports": [
+        {
+          "port": "p1",
+          "kind": "output",
+          "type": "number"
+        },
+        {
+          "port": "p2",
+          "kind": "output",
+          "type": "generic"
+        }
+      ],
+      "id": "#ciutv4lae0001gplc6q6un8p1",
+      "settings": {},
+      "path": [
+        "#ciutv4lae0001gplc6q6un8p1"
+      ]
+    },
+    {
+      "name": "b",
+      "ports": [
+        {
+          "port": "p1",
+          "kind": "input",
+          "type": "number"
+        },
+        {
+          "port": "p2",
+          "kind": "input",
+          "type": "generic"
+        }
+      ],
+      "id": "#ciutv4lam0002gplczw983zlq",
+      "settings": {},
+      "path": [
+        "#ciutv4lam0002gplczw983zlq"
+      ]
+    }
+  ],
+  "metaInformation": {
+    "version": "0.4.0-pre.5"
+  },
+  "edges": [
+    {
+      "from": {
+        "type": "generic",
+        "node": "#ciutv4lae0001gplc6q6un8p1",
+        "port": "p1"
+      },
+      "to": {
+        "type": "generic",
+        "node": "#ciutv4lam0002gplczw983zlq",
+        "port": "p2"
+      },
+      "layer": "dataflow"
+    },
+    {
+      "from": {
+        "type": "generic",
+        "node": "#ciutv4lae0001gplc6q6un8p1",
+        "port": "p2"
+      },
+      "to": {
+        "type": "generic",
+        "node": "#ciutv4lam0002gplczw983zlq",
+        "port": "p1"
+      },
+      "layer": "dataflow"
+    }
+  ],
+  "components": [],
+  "path": [],
+  "ports": [],
+  "atomic": false,
+  "id": "#ciutv4la50000gplcbsz3utyu"
+}

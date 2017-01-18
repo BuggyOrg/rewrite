@@ -1,0 +1,84 @@
+
+> @buggyorg/rewrite@0.2.4 test /home/gdv/vschmidt/Buggy/buggy-meta/rewrite
+> mocha --compilers js:babel-register && standard src/**/*.js
+
+
+
+  API tests
+    1) can create and compare graphs
+    2) can empty rules without changing the graph
+    ✓ throws errors when there return values are forgotten
+    3) can replace port types (using applyNode)
+    4) can replace port types (using applyPort)
+    5) can replace port types (using applyEdge)
+    6) can handle edges in all layers
+    7) can replace components
+
+
+  1 passing (452ms)
+  7 failing
+
+  1) API tests can create and compare graphs:
+     TypeError: _lodash2.default.contains is not a function
+      at compareCustomizer (src/api.js:214:12)
+      at baseClone (node_modules/lodash/lodash.js:2632:67)
+      at Function.cloneDeepWith (node_modules/lodash/lodash.js:11068:14)
+      at Object.graphEquals (src/api.js:226:16)
+      at Context.<anonymous> (test/api.js:107:16)
+
+  2) API tests can empty rules without changing the graph:
+     TypeError: _lodash2.default.contains is not a function
+      at compareCustomizer (src/api.js:214:12)
+      at baseClone (node_modules/lodash/lodash.js:2632:67)
+      at Function.cloneDeepWith (node_modules/lodash/lodash.js:11068:14)
+      at graphEquals (src/api.js:226:16)
+      at src/api.js:198:14
+      at Context.<anonymous> (test/api.js:119:20)
+
+  3) API tests can replace port types (using applyNode):
+     TypeError: Cannot read property 'ports' of undefined
+      at Object.replacePort (src/api.js:242:18)
+      at test/api.js:148:20
+      at apply (src/api.js:83:24)
+      at src/api.js:102:12
+      at src/api.js:197:29
+      at Context.<anonymous> (test/api.js:151:20)
+
+  4) API tests can replace port types (using applyPort):
+     TypeError: Cannot read property 'ports' of undefined
+      at Object.replacePort (src/api.js:242:18)
+      at test/api.js:168:20
+      at apply (src/api.js:83:24)
+      at src/api.js:121:12
+      at src/api.js:197:29
+      at Context.<anonymous> (test/api.js:172:20)
+
+  5) API tests can replace port types (using applyEdge):
+     TypeError: Cannot read property 'ports' of undefined
+      at Object.replacePort (src/api.js:242:18)
+      at test/api.js:194:20
+      at apply (src/api.js:83:24)
+      at src/api.js:154:12
+      at src/api.js:197:29
+      at Context.<anonymous> (test/api.js:198:20)
+
+  6) API tests can handle edges in all layers:
+     TypeError: undefined is not a function
+      at compareCustomizer (src/api.js:214:12)
+      at baseClone (node_modules/lodash/lodash.js:2632:67)
+      at Function.cloneDeepWith (node_modules/lodash/lodash.js:11068:14)
+      at graphEquals (src/api.js:226:16)
+      at src/api.js:198:14
+      at Context.<anonymous> (test/api.js:225:5)
+
+  7) API tests can replace components:
+     TypeError: undefined is not a function
+      at compareCustomizer (src/api.js:214:12)
+      at baseClone (node_modules/lodash/lodash.js:2632:67)
+      at Function.cloneDeepWith (node_modules/lodash/lodash.js:11068:14)
+      at graphEquals (src/api.js:226:16)
+      at src/api.js:198:14
+      at Context.<anonymous> (test/api.js:236:22)
+
+
+
