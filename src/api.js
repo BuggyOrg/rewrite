@@ -73,6 +73,10 @@ export function isGenericPort (port) {
  * @return {Graph} updated graph
  */
 export function apply (graph, set, matcher, generator) {
+  if (!graph) throw new Error('no graph')
+  if (!set) throw new Error('no candidates')
+  if (!matcher) throw new Error('no matcher')
+  if (!generator) throw new Error('no generator')
   for (const candidate of set) {
     const match = matcher(candidate, graph)
     if (match === false) {
@@ -99,6 +103,8 @@ export function apply (graph, set, matcher, generator) {
  * @return {Graph} updated graph
  */
 export function applyNode (matcher, generator) {
+  if (!matcher) throw new Error('no matcher')
+  if (!generator) throw new Error('no generator')
   return (graph) => {
     const nodes = Graph.nodesDeep(graph)
     return apply(
@@ -116,9 +122,12 @@ export function applyNode (matcher, generator) {
  * @return {Graph} updated graph
  */
 export function applyPort (matcher, generator) {
+  if (!matcher) throw new Error('no matcher')
+  if (!generator) throw new Error('no generator')
   return (graph) => {
+    if (!graph) throw new Error('no graph')
     const nodes = Graph.nodesDeep(graph)
-    const ports = _.map(nodes, (node) => Graph.Node.ports(node, graph))
+    const ports = _.map(nodes, (node) => Graph.Node.ports(node, graph) || [])
     const portsFlat = _.flatten(ports)
     return apply(
       graph,
@@ -135,24 +144,33 @@ export function applyPort (matcher, generator) {
  * @return {Graph} updated graph
  */
 export function applyEdge (matcher, generator) {
+  if (!matcher) throw new Error('no matcher')
+  if (!generator) throw new Error('no generator')
   return (graph) => {
+    if (!graph) throw new Error('no graph')
     const edges = _.map(Graph.edges(graph), (edge) => {
+      if (!graph) throw new Error('no edge')
       if (isPortEdge(edge)) {
         const src = Graph.node(edge.from.node, graph)
+        if (!src) throw new Error('no src')
         const dst = Graph.node(edge.to.node, graph)
+        if (!dst) throw new Error('no dst')
         return {
           source: src,
           target: dst,
           sourcePort: Graph.Node.port(edge.from.port, src),
-          targetPort: Graph.Node.port(edge.to.port, dst)
+          targetPort: Graph.Node.port(edge.to.port, dst),
+          layer: edge.layer
         }
       } else {
         return {
           source: Graph.node(edge.from, graph),
-          target: Graph.node(edge.to, graph)
+          target: Graph.node(edge.to, graph),
+          layer: edge.layer
         }
       }
     })
+    if (!edges) throw new Error('no edges')
     return apply(
       graph,
       edges,
@@ -168,6 +186,8 @@ export function applyEdge (matcher, generator) {
  * @return {Graph} updated graph
  */
 export function applyComponent (matcher, generator) {
+  if (!matcher) throw new Error('no matcher')
+  if (!generator) throw new Error('no generator')
   return (graph) => {
     for (const comp of Graph.components(graph)) {
       const match = matcher(comp, graph)
@@ -189,7 +209,7 @@ export function applyComponent (matcher, generator) {
  * @param {int} iterations max number of iterations until rewriting terminates
  * @return {Graph} rewritten graph
  */
-export function rewrite (rules, iterations = Infinity) {
+export function rewrite (rules = [], iterations = Infinity) {
   return (graph) => {
     let currentGraph = graph
     // iterate as long as any rule is applied
@@ -240,6 +260,10 @@ export function graphEquals (graph1, graph2) {
  * @return {Graph} updated graph with oldPort replaced by newPort
  */
 export function replacePort (node, oldPort, newPort, graph) {
+  if (!node) throw new Error('no node')
+  if (!oldPort) throw new Error('no oldPort')
+  if (!newPort) throw new Error('no newPort')
+  if (!graph) throw new Error('no graph')
   const newNode = _.cloneDeep(node)
   newNode.ports = _.map(Graph.Node.ports(node), (port) =>
       portEquals(port, oldPort)
