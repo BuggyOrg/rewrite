@@ -56,6 +56,44 @@ export function portEquals (port1, port2) {
 }
 
 /**
+ * Determines wether the given type object is a generic type
+ * @param t the type
+ * @return {Boolean} true iff x is a generic type
+ */
+export function IsGenericType (t) {
+  if (!t) return false
+  else if (typeof t === 'string') return IsLowerCase(t.charAt(0))
+  else if (IsTypeObject(t)) return IsLowerCase(t.name.charAt(0))
+  else return false
+}
+
+function IsLowerCase (c) {
+  return c === c.toLowerCase()
+}
+
+/**
+ * Checks a type object for validity
+ * @param t the type
+ * @return {Type} a modified type
+ */
+export function CheckType (t) {
+  if (!t) throw new Error('missing type definition')
+  else if (typeof t === 'string') return MakeTypeObject(t)
+  else if (!IsTypeObject(t)) throw new Error('invalid type definition')
+  else return t
+}
+
+function IsTypeObject (t) {
+  return t &&
+  t.data &&
+  t.name
+}
+
+function MakeTypeObject (t) {
+  return { name: t, data: [] }
+}
+
+/**
  * Determines wether the given object is a generic Port
  * @param x the object
  * @return {Boolean} true iff x is a generic Port
