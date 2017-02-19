@@ -178,7 +178,7 @@ describe('API tests', () => {
       _.every(Graph.Node.ports(node), (port) => !API.isGenericPort(port)))
     ).to.be.true
   })
-  it('can replace port types (using applyEdge)', () => {
+  it.skip('can replace port types (using applyEdge)', () => {
     const rule = API.applyEdge(
       (edge, graph) => {
         if (API.isGenericPort(edge.sourcePort) && API.isGenericPort(edge.targetPort) === false) {

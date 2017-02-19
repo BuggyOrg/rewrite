@@ -8,52 +8,30 @@ const Blacklist = ['id', 'path', 'node']
  * @param x the object
  * @return {Boolean} true iff x is a Port
  */
-export function isPort (x) {
-  return x && x.port && x.kind && x.type
-}
+export const isPort = Graph.Port.isValid
 
 /**
  * Determines wether the given object is an Edge
  * @param x the object
  * @return {Boolean} true iff x is an Edge
  */
-export function isEdge (x) {
-  return x && x.from && x.to
-}
+export const isEdge = Graph.Edge.isEdge
 
 /**
  * Determines wether the given object is an Edge between two Ports
  * @param x the object
  * @return {Boolean} true iff x is an Edge between two Ports
  */
-export function isPortEdge (x) {
-  return x && x.from.node && x.from.port && x.to.node && x.to.port
-}
+export const isPortEdge = Graph.Edge.isBetweenPorts
 
 /**
  * Determines wether the given object is an Edge between two Nodes
  * @param x the object
  * @return {Boolean} true iff x is an Edge between two Nodes
  */
-export function isNodeEdge (x) {
-  return x && x.from && x.to
-}
+export const isNodeEdge = Graph.Edge.isBetweenNodes
 
-/**
- * Determines wether two given port objects are equal
- * @param {Port} port1 first port
- * @param {Port} port2 second port
- * @return {Boolean} true iff port1 and port2 are equal
- */
-export function portEquals (port1, port2) {
-  if (!isPort(port1)) {
-    return false
-  }
-  if (!isPort(port2)) {
-    return false
-  }
-  return port1.port === port2.port && port1.kind === port2.kind
-}
+export const portEquals = Graph.Port.equal
 
 /**
  * Determines wether the given type object is a generic type
@@ -71,26 +49,10 @@ function IsLowerCase (c) {
   return c === c.toLowerCase()
 }
 
-/**
- * Checks a type object for validity
- * @param t the type
- * @return {Type} a modified type
- */
-export function CheckType (t) {
-  if (!t) throw new Error('missing type definition')
-  else if (typeof t === 'string') return MakeTypeObject(t)
-  else if (!IsTypeObject(t)) throw new Error('invalid type definition')
-  else return t
-}
-
 function IsTypeObject (t) {
   return t &&
   t.data &&
   t.name
-}
-
-function MakeTypeObject (t) {
-  return { name: t, data: [] }
 }
 
 /**
