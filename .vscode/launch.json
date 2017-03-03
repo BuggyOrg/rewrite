@@ -6,8 +6,9 @@
   "configurations": [
     {
       "name": "Launch Program",
-      "type": "node2",
+      "type": "node",
       "request": "launch",
+      "protocol": "inspector",
       "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
       "cwd": "${workspaceRoot}",
       "args": ["--compilers", "js:babel-register", "--recursive"],
@@ -16,7 +17,10 @@
       },
       "console": "internalConsole",
       "sourceMaps": true,
-      "smartStep": true
+      "smartStep": false,
+      "skipFiles": [
+        "node_modules/lodash/**/*"
+      ]
     }
   ]
 }
