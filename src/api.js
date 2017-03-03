@@ -179,23 +179,3 @@ export function rewrite (rules = [], iterations = Infinity) {
     return currentGraph
   }
 }
-
-/**
- * Replaces a port of a node in a graph
- * @param {Node} node the node which contains the port
- * @param {Port} oldPort port object to be replaced
- * @param {Port} newPort port object to replace with
- * @return {Graph} updated graph with oldPort replaced by newPort
- */
-export function replacePort (node, oldPort, newPort, graph) {
-  if (!node) throw new Error('no node')
-  if (!oldPort) throw new Error('no oldPort')
-  if (!newPort) throw new Error('no newPort')
-  if (!graph) throw new Error('no graph')
-  const newNode = _.cloneDeep(node)
-  newNode.ports = _.map(Graph.Node.ports(node), (port) =>
-      (Port.portName(port) === Port.portName(oldPort))
-      ? newPort
-      : port)
-  return Graph.replaceNode(node, newNode, graph)
-}

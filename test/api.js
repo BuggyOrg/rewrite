@@ -159,7 +159,7 @@ describe('API tests', () => {
         const newPort = _.assign(_.cloneDeep(match.port), {
           type: 'number'
         })
-        return API.replacePort(match.node, match.port, newPort, graph)
+        return Graph.replacePort(match.port, newPort, graph)
       })
     const graph1 = createTestGraph()
     const graph2 = API.rewrite([rule])(graph1)
@@ -175,11 +175,10 @@ describe('API tests', () => {
         ? port
         : false,
       (port, graph) => {
-        var node = Graph.node(Graph.Port.node(port), graph)
         var newPort = _.assign(_.cloneDeep(port), {
           type: 'number'
         })
-        return API.replacePort(node, port, newPort, graph)
+        return Graph.replacePort(port, newPort, graph)
       })
 
     const graph1 = createTestGraph()
@@ -205,7 +204,7 @@ describe('API tests', () => {
         var newPort = _.assign(_.cloneDeep(edge.sourcePort), {
           type: edge.targetPort.type
         })
-        return API.replacePort(edge.source, edge.sourcePort, newPort, graph)
+        return Graph.replacePort(edge.sourcePort, newPort, graph)
       })
 
     const graph1 = createTestGraph()
@@ -232,7 +231,7 @@ describe('API tests', () => {
         const newPort = _.assign(_.cloneDeep(edge.sourcePort), {
           type: edge.targetPort.type
         })
-        return API.replacePort(edge.source, edge.sourcePort, newPort, graph)
+        return Graph.replacePort(edge.sourcePort, newPort, graph)
       })
 
     const graph1 = createFacGraph()
