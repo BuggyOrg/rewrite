@@ -2,12 +2,15 @@
 /* global describe, it */
 
 import * as Graph from '@buggyorg/graphtools'
+import sinon from 'sinon'
+import sinonChai from 'sinon-chai'
 import * as API from '../src/api'
 
 import _ from 'lodash'
 import chai from 'chai'
 
 const expect = chai.expect
+chai.use(sinonChai)
 
 function createTestGraph () {
   return Graph.flow(
@@ -111,13 +114,13 @@ describe('API tests', () => {
   })
   it('stops rewriting if nothing changed', () => {
     const nopeMatcher = sinon.stub().returns(false)
-    const rule = API.applyNode(nodeMatcher, () => undefined)
+    const rule = API.applyNode(nopeMatcher, () => undefined)
     const cmpd = Graph.flow(
       Graph.addNode({name: 'a', ports: [{port: 'out', kind: 'output', type: 'generic'}]}),
       Graph.addEdge({from: 'a@out', to: '@in'})
     )(Graph.compound({ports: [{port: 'in', kind: 'output', type: 'generic'}]}))
-    API.rewrite([rule], cmpd)
-    expect(nopeMatcher).to.have.been.calledOnce
+    API.rewrite([rule])(cmpd)
+    expect(nopeMatcher).to.have.been.calledTwice // node a and the root node
   })
   it('can empty rules without changing the graph', () => {
     const rule1 = API.applyNode(
