@@ -1,97 +1,7 @@
 import * as Graph from '@buggyorg/graphtools'
 import _ from 'lodash'
 
-const Blacklist = ['id', 'path', 'node']
-
-/**
- * Determines wether the given object is a Port
- * @param x the object
- * @return {Boolean} true iff x is a Port
- */
-export function isPort (x) {
-  return x && x.port && x.kind && x.type
-}
-
-/**
- * Determines wether the given object is an Edge
- * @param x the object
- * @return {Boolean} true iff x is an Edge
- */
-export function isEdge (x) {
-  return x && x.from && x.to
-}
-
-/**
- * Determines wether the given object is an Edge between two Ports
- * @param x the object
- * @return {Boolean} true iff x is an Edge between two Ports
- */
-export function isPortEdge (x) {
-  return x && x.from.node && x.from.port && x.to.node && x.to.port
-}
-
-/**
- * Determines wether the given object is an Edge between two Nodes
- * @param x the object
- * @return {Boolean} true iff x is an Edge between two Nodes
- */
-export function isNodeEdge (x) {
-  return x && x.from && x.to
-}
-
-/**
- * Determines wether two given port objects are equal
- * @param {Port} port1 first port
- * @param {Port} port2 second port
- * @return {Boolean} true iff port1 and port2 are equal
- */
-export function portEquals (port1, port2) {
-  if (!isPort(port1)) {
-    return false
-  }
-  if (!isPort(port2)) {
-    return false
-  }
-  return port1.port === port2.port && port1.kind === port2.kind
-}
-
-/**
- * Determines wether the given type object is a generic type
- * @param t the type
- * @return {Boolean} true iff x is a generic type
- */
-export function IsGenericType (t) {
-  if (!t) return false
-  else if (typeof t === 'string') return IsLowerCase(t.charAt(0))
-  else if (IsTypeObject(t)) return IsLowerCase(t.name.charAt(0))
-  else return false
-}
-
-function IsLowerCase (c) {
-  return c === c.toLowerCase()
-}
-
-/**
- * Checks a type object for validity
- * @param t the type
- * @return {Type} a modified type
- */
-export function CheckType (t) {
-  if (!t) throw new Error('missing type definition')
-  else if (typeof t === 'string') return MakeTypeObject(t)
-  else if (!IsTypeObject(t)) throw new Error('invalid type definition')
-  else return t
-}
-
-function IsTypeObject (t) {
-  return t &&
-  t.data &&
-  t.name
-}
-
-function MakeTypeObject (t) {
-  return { name: t, data: [] }
-}
+const {Port, Edge} = Graph
 
 /**
  * Determines wether the given object is a generic Port
@@ -99,7 +9,7 @@ function MakeTypeObject (t) {
  * @return {Boolean} true iff x is a generic Port
  */
 export function isGenericPort (port) {
-  return isPort(port) && port.type === 'generic'
+  return Port.isPort(port) && Port.type(port) === 'generic'
 }
 
 /**
@@ -125,7 +35,7 @@ export function apply (graph, set, matcher, generator) {
       const newGraph = generator(match, graph)
       if (newGraph === undefined) {
         throw new Error('Generator function returned undefined (missing return value?)')
-      } else if (graphEquals(graph, newGraph)) {
+      } else if (Graph.isomorph(graph, newGraph)) {
         continue
       }
       graph = newGraph
@@ -188,7 +98,7 @@ export function applyEdge (matcher, generator) {
     if (!graph) throw new Error('no graph')
     const edges = _.map(Graph.edges(graph), (edge) => {
       if (!graph) throw new Error('no edge')
-      if (isPortEdge(edge)) {
+      if (Edge.isBetweenPorts(edge)) {
         const src = Graph.node(edge.from.node, graph)
         if (!src) throw new Error('no src')
         const dst = Graph.node(edge.to.node, graph)
@@ -255,7 +165,7 @@ export function rewrite (rules = [], iterations = Infinity) {
       let ruleApplied = false
       for (const rule of rules) {
         let modifiedGraph = rule(currentGraph)
-        if (!graphEquals(currentGraph, modifiedGraph)) {
+        if (!Graph.isomorph(currentGraph, modifiedGraph)) {
           // some rule applied
           currentGraph = modifiedGraph
           ruleApplied = true
@@ -268,26 +178,6 @@ export function rewrite (rules = [], iterations = Infinity) {
     }
     return currentGraph
   }
-}
-
-function compareCustomizer (value, key) {
-  return _.includes(Blacklist, key)
-    ? null
-    : undefined
-}
-
-/**
- * Determines wether two given graph objects are equal
- * @param {Graph} graph1 first graph
- * @param {Graph} graph2 second graph
- * @return {Boolean} true iff graph1 and graph2 are equal
- */
-export function graphEquals (graph1, graph2) {
-  const g1 = _.cloneDeepWith(graph1, compareCustomizer)
-  const g2 = _.cloneDeepWith(graph2, compareCustomizer)
-  const s1 = JSON.stringify(Graph.toJSON(g1))
-  const s2 = JSON.stringify(Graph.toJSON(g2))
-  return s1 === s2
 }
 
 /**
@@ -304,7 +194,7 @@ export function replacePort (node, oldPort, newPort, graph) {
   if (!graph) throw new Error('no graph')
   const newNode = _.cloneDeep(node)
   newNode.ports = _.map(Graph.Node.ports(node), (port) =>
-      portEquals(port, oldPort)
+      (Port.portName(port) === Port.portName(oldPort))
       ? newPort
       : port)
   return Graph.replaceNode(node, newNode, graph)

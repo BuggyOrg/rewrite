@@ -22,16 +22,18 @@ function createTestGraph () {
       name: 'b',
       ports: [
         { port: 'p1', kind: 'input', type: 'number' },
-        { port: 'p2', kind: 'input', type: 'generic' }
+        { port: 'p2', kind: 'input', type: 'generic' },
+        { port: 'out', kind: 'output', type: 'generic' }
       ]
     }),
     Graph.addEdge({ from: 'a@p1', to: 'b@p2' }),
-    Graph.addEdge({ from: 'a@p2', to: 'b@p1' })
-  )()
+    Graph.addEdge({ from: 'a@p2', to: 'b@p1' }),
+    Graph.addEdge({ from: 'b@out', to: '@out' })
+  )(Graph.compound({ports: [{port: 'out', kind: 'output', type: 'generic'}]}))
 }
 
 function createFacGraph () {
-  const cmp = Graph.flow(
+  return Graph.flow(
     Graph.addNode({
       name: 'Const',
       atomic: true,
@@ -96,7 +98,6 @@ function createFacGraph () {
       { port: 'in', kind: 'output', type: 'generic' }
     ]
   }))
-  return Graph.addNode(cmp, Graph.empty())
 }
 
 describe('API tests', () => {
@@ -104,9 +105,19 @@ describe('API tests', () => {
     const graph1 = createTestGraph()
     const graph2 = createTestGraph()
     const graph3 = createFacGraph()
-    expect(API.graphEquals(graph1, graph1)).to.be.true
-    expect(API.graphEquals(graph1, graph2)).to.be.true
-    expect(API.graphEquals(graph1, graph3)).to.be.false
+    expect(Graph.isomorph(graph1, graph1)).to.be.true
+    expect(Graph.isomorph(graph1, graph2)).to.be.true
+    expect(Graph.isomorph(graph1, graph3)).to.be.false
+  })
+  it('stops rewriting if nothing changed', () => {
+    const nopeMatcher = sinon.stub().returns(false)
+    const rule = API.applyNode(nodeMatcher, () => undefined)
+    const cmpd = Graph.flow(
+      Graph.addNode({name: 'a', ports: [{port: 'out', kind: 'output', type: 'generic'}]}),
+      Graph.addEdge({from: 'a@out', to: '@in'})
+    )(Graph.compound({ports: [{port: 'in', kind: 'output', type: 'generic'}]}))
+    API.rewrite([rule], cmpd)
+    expect(nopeMatcher).to.have.been.calledOnce
   })
   it('can empty rules without changing the graph', () => {
     const rule1 = API.applyNode(
@@ -117,7 +128,7 @@ describe('API tests', () => {
       (match, graph) => null)
     const graph1 = createTestGraph()
     const graph2 = API.rewrite([rule1, rule2])(graph1)
-    expect(API.graphEquals(graph1, graph2)).to.be.true
+    expect(Graph.isomorph(graph1, graph2)).to.be.true
   })
   it('throws errors when there return values are forgotten', () => {
     const rule1 = API.applyEdge(
@@ -149,7 +160,7 @@ describe('API tests', () => {
       })
     const graph1 = createTestGraph()
     const graph2 = API.rewrite([rule])(graph1)
-    expect(API.graphEquals(graph1, graph2)).to.be.false
+    expect(Graph.isomorph(graph1, graph2)).to.be.false
     expect(
       _.every(Graph.nodes(graph2), (node) =>
       _.every(Graph.Node.ports(node), (port) => !API.isGenericPort(port)))
@@ -171,7 +182,7 @@ describe('API tests', () => {
     const graph1 = createTestGraph()
     const graph2 = API.rewrite([rule])(graph1)
 
-    expect(API.graphEquals(graph1, graph2)).to.be.false
+    expect(Graph.isomorph(graph1, graph2)).to.be.false
 
     expect(
       _.every(Graph.nodes(graph2), (node) =>
@@ -197,7 +208,7 @@ describe('API tests', () => {
     const graph1 = createTestGraph()
     const graph2 = API.rewrite([rule])(graph1)
 
-    expect(API.graphEquals(graph1, graph2)).to.be.false
+    expect(Graph.isomorph(graph1, graph2)).to.be.false
 
     expect(
       _.every(Graph.edges(graph2), (edge) => {
