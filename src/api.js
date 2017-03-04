@@ -1,7 +1,10 @@
 import * as Graph from '@buggyorg/graphtools'
+import debug from 'debug'
 import _ from 'lodash'
 
 const {Port, Edge} = Graph
+const appliedRule = (rule) => debug('rewrite-rule-applied')(JSON.stringify(_.omit(rule, ['matcher', 'generator', 'set'])))
+const debugGraph = Graph.debug
 
 /**
  * Determines wether the given object is a generic Port
@@ -20,24 +23,30 @@ export function isGenericPort (port) {
  * @param {Func} generator update function that takes a match and a graph and returns a new graph
  * @return {Graph} updated graph
  */
-export function apply (graph, set, matcher, generator) {
+export function apply (rule, graph) {
   if (!graph) throw new Error('no graph')
-  if (!set) throw new Error('no candidates')
-  if (!matcher) throw new Error('no matcher')
-  if (!generator) throw new Error('no generator')
+  if (!rule) throw new Error('no rule')
+  const set = rule.set(graph)
   for (const candidate of set) {
-    const match = matcher(candidate, graph)
+    const match = rule.matcher(candidate, graph)
     if (match === false) {
       continue
     } else if (!match) {
       throw new Error('Match function returned undefined (missing return value?)')
     } else {
-      const newGraph = generator(match, graph)
+      const newGraph = rule.generator(match, graph)
       if (newGraph === undefined) {
         throw new Error('Generator function returned undefined (missing return value?)')
       } else if (Graph.isomorph(graph, newGraph)) {
-        continue
+        if (rule.name) {
+          throw new Error('Rule "' + rule.name + '" did not change anything even though it matched. This rule' +
+            ' would be applied indefinitely.\nMatch: \n' + JSON.stringify(candidate, null, 2))
+        }
+        throw new Error('Rule did not change anything even though it matched. This rule' +
+            ' would be applied indefinitely.\nMatch: \n' + JSON.stringify(candidate, null, 2))
       }
+      appliedRule(rule)
+      debugGraph(newGraph)
       graph = newGraph
     }
   }
@@ -48,83 +57,88 @@ export function apply (graph, set, matcher, generator) {
  * Applies a match function to candidate nodes and updates at the first match
  * @param {Func} matcher match function that takes a candidate and a graph and returns a match object if the candidate should be rewritten
  * @param {Func} generator update function that takes a match and a graph and returns a new graph
- * @return {Graph} updated graph
+ * @return {Rule} The rewrite rule. You can apply it via `rewrite([rule], graph)`
  */
-export function applyNode (matcher, generator) {
+export function applyNode (matcher, generator, data = {}) {
   if (!matcher) throw new Error('no matcher')
   if (!generator) throw new Error('no generator')
-  return (graph) => {
-    const nodes = Graph.nodesDeep(graph)
-    return apply(
-      graph,
-      nodes,
-      matcher,
-      generator)
-  }
+  return Object.assign({matcher, generator, set: Graph.nodesDeep}, data)
 }
 
 /**
  * Applies a match function to candidate ports and updates at the first match
  * @param {Func} matcher match function that takes a candidate and a graph and returns a match object if the candidate should be rewritten
  * @param {Func} generator update function that takes a match and a graph and returns a new graph
- * @return {Graph} updated graph
+ * @return {Rule} The rewrite rule. You can apply it via `rewrite([rule], graph)`
  */
-export function applyPort (matcher, generator) {
+export function applyPort (matcher, generator, data = {}) {
   if (!matcher) throw new Error('no matcher')
   if (!generator) throw new Error('no generator')
-  return (graph) => {
-    if (!graph) throw new Error('no graph')
-    const nodes = Graph.nodesDeep(graph)
-    const ports = _.map(nodes, (node) => Graph.Node.ports(node, graph) || [])
-    const portsFlat = _.flatten(ports)
-    return apply(
-      graph,
-      portsFlat,
-      matcher,
-      generator)
-  }
+  const allPorts = (graph) =>
+    _.flatten(Graph.nodesDeep(graph).map((node) => Graph.Node.ports(node, graph)))
+  return Object.assign({matcher, generator, set: allPorts}, data)
+}
+
+/**
+ * Get all edges in the graph and query the source and destination nodes and ports.
+ * @param {Portgraph} graph The graph
+ * @returns {Array<Edge>} All edges in the graph
+ */
+function edgeSet (graph) {
+  if (!graph) throw new Error('Invalid graph')
+  return Graph.edges(graph).map((edge) => {
+    if (Edge.isBetweenPorts(edge)) {
+      const src = Graph.node(edge.from.node, graph)
+      if (!src) throw new Error('no src')
+      const dst = Graph.node(edge.to.node, graph)
+      if (!dst) throw new Error('no dst')
+      return Object.assign({
+        source: src,
+        target: dst
+      }, edge, {from: Graph.port(edge.from, graph), to: Graph.port(edge.to, graph)})
+    } else {
+      return Object.assign({
+        source: Graph.node(edge.from, graph),
+        target: Graph.node(edge.to, graph)
+      }, edge)
+    }
+  })
 }
 
 /**
  * Applies a match function to candidate edges and updates at the first match
- * @param {Func} matcher match function that takes a candidate and a graph and returns a match object if the candidate should be rewritten
+ * @param {Func} matcher Match function that takes a candidate and a graph and returns a match object
+ * if the candidate should be rewritten. Each candidate is an edge object with already queried source
+ * and destinations. An edge object for an edge between ports will look like this:
+ *
+ * ```
+ * {
+ *   from: <Port>,
+ *   to: <Port>,
+ *   source: <Node>,
+ *   destination: <Node>,
+ *   ...<further edge attributes>
+ * }
+ * ```
+ *
+ * If the edge connects two nodes (and not ports), the object will look like this:
+ *
+ * ```
+ * {
+ *   from: <Node>,
+ *   to: <Node>,
+ *   source: <Node>,
+ *   destination: <Node>,
+ *   ...<further edge attributes>
+ * }
+ * ```
  * @param {Func} generator update function that takes a match and a graph and returns a new graph
- * @return {Graph} updated graph
+ * @return {Rule} The rewrite rule. You can apply it via `rewrite([rule], graph)`
  */
-export function applyEdge (matcher, generator) {
+export function applyEdge (matcher, generator, data = {}) {
   if (!matcher) throw new Error('no matcher')
   if (!generator) throw new Error('no generator')
-  return (graph) => {
-    if (!graph) throw new Error('no graph')
-    const edges = _.map(Graph.edges(graph), (edge) => {
-      if (!graph) throw new Error('no edge')
-      if (Edge.isBetweenPorts(edge)) {
-        const src = Graph.node(edge.from.node, graph)
-        if (!src) throw new Error('no src')
-        const dst = Graph.node(edge.to.node, graph)
-        if (!dst) throw new Error('no dst')
-        return {
-          source: src,
-          target: dst,
-          sourcePort: Graph.Node.port(edge.from.port, src),
-          targetPort: Graph.Node.port(edge.to.port, dst),
-          layer: edge.layer
-        }
-      } else {
-        return {
-          source: Graph.node(edge.from, graph),
-          target: Graph.node(edge.to, graph),
-          layer: edge.layer
-        }
-      }
-    })
-    if (!edges) throw new Error('no edges')
-    return apply(
-      graph,
-      edges,
-      matcher,
-      generator)
-  }
+  return Object.assign({matcher, generator, set: edgeSet}, data)
 }
 
 /**
@@ -133,22 +147,10 @@ export function applyEdge (matcher, generator) {
  * @param {Func} generator update function that takes a match and a graph and returns a new graph
  * @return {Graph} updated graph
  */
-export function applyComponent (matcher, generator) {
+export function applyComponent (matcher, generator, data = {}) {
   if (!matcher) throw new Error('no matcher')
   if (!generator) throw new Error('no generator')
-  return (graph) => {
-    for (const comp of Graph.components(graph)) {
-      const match = matcher(comp, graph)
-      if (match === false) {
-        continue
-      } else if (!match) {
-        throw new Error('Match function returned undefined (missing return value?)')
-      } else {
-        return generator(match, graph)
-      }
-    }
-    return graph
-  }
+  return Object.assign({matcher, generator, set: Graph.components}, data)
 }
 
 /**
@@ -164,7 +166,7 @@ export function rewrite (rules = [], iterations = Infinity) {
     for (var i = 1; i < iterations; i++) {
       let ruleApplied = false
       for (const rule of rules) {
-        let modifiedGraph = rule(currentGraph)
+        let modifiedGraph = apply(rule, currentGraph)
         if (!Graph.isomorph(currentGraph, modifiedGraph)) {
           // some rule applied
           currentGraph = modifiedGraph
