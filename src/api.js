@@ -28,12 +28,13 @@ export function apply (rule, graph) {
   if (!rule) throw new Error('no rule')
   const set = rule.set(graph)
   for (const candidate of set) {
-    const match = rule.matcher(candidate, graph)
+    var match = rule.matcher(candidate, graph)
     if (match === false) {
       continue
     } else if (!match) {
       throw new Error('Match function returned undefined (missing return value?)')
     } else {
+      if (match === true) match = candidate
       const newGraph = rule.generator(match, graph)
       if (newGraph === undefined) {
         throw new Error('Generator function returned undefined (missing return value?)')
