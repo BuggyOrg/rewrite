@@ -28,7 +28,7 @@ export function apply (rule, graph) {
   if (!rule) throw new Error('no rule')
   const set = rule.set(graph)
   var anyMatched = false
-  const checkIsomorph = rule.checkIsomorph || true
+  const noIsomorphCheck = rule.noIsomorphCheck ||  false
   for (const candidate of set) {
     var match = rule.matcher(candidate, graph)
     if (match === false) {
@@ -40,7 +40,7 @@ export function apply (rule, graph) {
       const newGraph = rule.generator(match, graph)
       if (newGraph === undefined) {
         throw new Error('Generator function returned undefined (missing return value?)')
-      } else if (checkIsomorph && Graph.isomorph(graph, newGraph)) {
+      } else if (!noIsomorphCheck && Graph.isomorph(graph, newGraph)) {
         if (rule.name) {
           throw new Error('Rule "' + rule.name + '" did not change anything even though it matched. This rule' +
             ' would be applied indefinitely.\nMatch: \n' + JSON.stringify(candidate, null, 2))
