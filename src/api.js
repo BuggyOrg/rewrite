@@ -21,12 +21,14 @@ export function isGenericPort (port) {
  * @param {List} set candidate objects for rewriting
  * @param {Func} matcher match function that takes a candidate and a graph and returns a match object if the candidate should be rewritten
  * @param {Func} generator update function that takes a match and a graph and returns a new graph
- * @return {Graph} updated graph
+ * @return {Graph} The updated graph. If the rule did not change the graph it will return undefined.
  */
 export function apply (rule, graph) {
   if (!graph) throw new Error('no graph')
   if (!rule) throw new Error('no rule')
   const set = rule.set(graph)
+  var anyMatched = false
+  const checkIsomorph = rule.checkIsomorph || true
   for (const candidate of set) {
     var match = rule.matcher(candidate, graph)
     if (match === false) {
@@ -38,7 +40,7 @@ export function apply (rule, graph) {
       const newGraph = rule.generator(match, graph)
       if (newGraph === undefined) {
         throw new Error('Generator function returned undefined (missing return value?)')
-      } else if (Graph.isomorph(graph, newGraph)) {
+      } else if (checkIsomorph && Graph.isomorph(graph, newGraph)) {
         if (rule.name) {
           throw new Error('Rule "' + rule.name + '" did not change anything even though it matched. This rule' +
             ' would be applied indefinitely.\nMatch: \n' + JSON.stringify(candidate, null, 2))
@@ -46,12 +48,13 @@ export function apply (rule, graph) {
         throw new Error('Rule did not change anything even though it matched. This rule' +
             ' would be applied indefinitely.\nMatch: \n' + JSON.stringify(candidate, null, 2))
       }
+      anyMatched = true
       appliedRule(rule)
       debugGraph(newGraph)
       graph = newGraph
     }
   }
-  return graph
+  return (anyMatched) ? graph : undefined
 }
 
 /**
@@ -87,7 +90,7 @@ export function applyPort (matcher, generator, data = {}) {
  */
 function edgeSet (graph) {
   if (!graph) throw new Error('Invalid graph')
-  return Graph.edges(graph).map((edge) => {
+  return Graph.edgesDeep(graph).map((edge) => {
     if (Edge.isBetweenPorts(edge)) {
       const src = Graph.node(edge.from.node, graph)
       if (!src) throw new Error('no src')
@@ -168,7 +171,7 @@ export function rewrite (rules = [], iterations = Infinity) {
       let ruleApplied = false
       for (const rule of rules) {
         let modifiedGraph = apply(rule, currentGraph)
-        if (!Graph.isomorph(currentGraph, modifiedGraph)) {
+        if (modifiedGraph) {
           // some rule applied
           currentGraph = modifiedGraph
           ruleApplied = true
