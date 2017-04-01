@@ -28,7 +28,7 @@ export function apply (rule, graph) {
   if (!rule) throw new Error('no rule')
   const set = rule.set(graph)
   var anyMatched = false
-  const noIsomorphCheck = rule.noIsomorphCheck ||  false
+  const noIsomorphCheck = rule.noIsomorphCheck || false
   for (const candidate of set) {
     var match = rule.matcher(candidate, graph)
     if (match === false) {
