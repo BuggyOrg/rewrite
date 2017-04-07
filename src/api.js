@@ -29,6 +29,7 @@ export function apply (rule, graph) {
   const set = rule.set(graph)
   var anyMatched = false
   const noIsomorphCheck = rule.noIsomorphCheck || false
+  const debugGraphs = rule.debugGraphs || false
   for (const candidate of set) {
     var match = rule.matcher(candidate, graph)
     if (match === false) {
@@ -49,8 +50,10 @@ export function apply (rule, graph) {
             ' would be applied indefinitely.\nMatch: \n' + JSON.stringify(candidate, null, 2))
       }
       anyMatched = true
-      appliedRule(rule)
-      debugGraph(newGraph)
+      if (debugGraphs) {
+        appliedRule(rule)
+        debugGraph(newGraph)
+      }
       graph = newGraph
     }
   }
