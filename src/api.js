@@ -55,6 +55,7 @@ export function apply (rule, graph) {
         debugGraph(newGraph)
       }
       graph = newGraph
+      break
     }
   }
   return (anyMatched) ? graph : undefined
