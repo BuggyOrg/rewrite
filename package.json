@@ -1,6 +1,6 @@
 {
   "name": "@buggyorg/rewrite",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Tools for replacing parts of a graph.",
   "main": "lib/api.js",
   "scripts": {
