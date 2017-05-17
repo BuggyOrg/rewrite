@@ -28,7 +28,7 @@ export function apply (rule, graph) {
   if (!rule) throw new Error('no rule')
   const set = rule.set(graph)
   var anyMatched = false
-  const noIsomorphCheck = rule.noIsomorphCheck ||  false
+  const noIsomorphCheck = rule.noIsomorphCheck || false
   for (const candidate of set) {
     var match = rule.matcher(candidate, graph)
     if (match === false) {
@@ -52,6 +52,10 @@ export function apply (rule, graph) {
       appliedRule(rule)
       debugGraph(newGraph)
       graph = newGraph
+      if (rule.regenerate) {
+        console.log('rewrite invalidates result, regenerating candidate set')
+        break
+      }
     }
   }
   return (anyMatched) ? graph : undefined
@@ -159,7 +163,7 @@ export function applyComponent (matcher, generator, data = {}) {
 
 /**
  * Iteratively applies the given rules until no matches are found or max iteration is reached
- * @param {Kust} rules a list of rewrite rules that should be applied
+ * @param {Array} rules a list of rewrite rules that should be applied
  * @param {int} iterations max number of iterations until rewriting terminates
  * @return {Graph} rewritten graph
  */
